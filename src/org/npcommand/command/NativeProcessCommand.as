@@ -1,6 +1,7 @@
 package org.npcommand.command
 {
 	import flash.filesystem.File;
+	import flash.utils.ByteArray;
 	
 	import mx.collections.ArrayCollection;
 	
@@ -72,7 +73,14 @@ package org.npcommand.command
 			return _output;
 		}
 
-		
+		public function getByteArray():ByteArray{
+			var ba:ByteArray = new ByteArray();
+			for each(var opt:int in args)
+			{
+				ba.writeByte(opt);
+			}
+			return ba;
+		}
 		
 		public function getArgs():Vector.<String>{
 			var rargs:Vector.<String> = new Vector.<String>;
@@ -83,7 +91,6 @@ package org.npcommand.command
 			{
 				rargs.push(opt);
 			}
-			trace(rargs.toString());
 			return rargs;
 		}
 		

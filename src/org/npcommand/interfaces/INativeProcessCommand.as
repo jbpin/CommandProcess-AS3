@@ -1,6 +1,7 @@
 package org.npcommand.interfaces
 {
 	import flash.filesystem.File;
+	import flash.utils.ByteArray;
 	
 	import mx.collections.ArrayCollection;
 	
@@ -21,5 +22,6 @@ package org.npcommand.interfaces
 		function get output():Signal;
 		
 		function getArgs():Vector.<String>;
+		function getByteArray():ByteArray;
 	}
 }

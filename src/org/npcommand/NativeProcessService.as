@@ -16,9 +16,8 @@ package org.npcommand
 	import org.npcommand.interfaces.INativeProcessCommand;
 	import org.npcommand.interfaces.INativeProcessService;
 	import org.osflash.signals.Signal;
+	import org.osflash.signals.natives.NativeSignal;
 	
-	
-	[Event(name=IOErrorEvent.STANDARD_OUTPUT_IO_ERROR,type="flash.event.IOErrorEvent")];
 	public class NativeProcessService extends EventDispatcher implements INativeProcessService
 	{
 		private static const DEFAULT_MAC_APP_PATH:String = "/usr/local/bin";
@@ -35,6 +34,10 @@ package org.npcommand
 		private var _appPath:File;
 		
 		private var _currentCmd:INativeProcessCommand;
+		private var _injectedCmd:INativeProcessCommand;
+		
+		private var _IOInputError:NativeSignal;
+		private var _IOOutputError:NativeSignal;
 		
 		public function NativeProcessService()
 		{
@@ -49,16 +52,34 @@ package org.npcommand
 			}
 		}
 		
+		public function get IOOutputError():NativeSignal
+		{
+			return _IOOutputError;
+		}
+		
+		public function get IOInputError():NativeSignal
+		{
+			return _IOInputError;
+		}
+		
 		public function get isWindows():Boolean
 		{
 			return _isWindows;
 		}
-
+		
 		public function get isMacOs():Boolean
 		{
 			return _isMacOs;
 		}
-
+		
+		public function get isRunning():Boolean{
+			return _np.running;
+		}
+		
+		public function get nativeProcess():NativeProcess{
+			return _np;
+		}
+		
 		public function initialize(appName:String,path:String=null):void
 		{
 			try{
@@ -77,6 +98,11 @@ package org.npcommand
 				throw new Error("The application seems to be not present in "+path+". Please insure the application name is correct\nappName: "+appName);	
 			}
 			_np = new NativeProcess();
+			_IOInputError = new NativeSignal(_np,IOErrorEvent.STANDARD_INPUT_IO_ERROR);
+			_IOOutputError = new NativeSignal(_np,IOErrorEvent.STANDARD_OUTPUT_IO_ERROR);
+			_np.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA,onOutputData );
+			_np.addEventListener(ProgressEvent.STANDARD_ERROR_DATA,onErrorData);
+			_np.addEventListener(NativeProcessExitEvent.EXIT, onExit);
 		}
 		
 		public function executeCommand(cmd:INativeProcessCommand):void{
@@ -94,12 +120,18 @@ package org.npcommand
 			if(cmd.workingDirectory != null && cmd.workingDirectory.isDirectory){
 				_startUpInfo.workingDirectory = cmd.workingDirectory;
 			}
-			_np.addEventListener(ProgressEvent.STANDARD_OUTPUT_DATA,onOutputData );
-			_np.addEventListener(ProgressEvent.STANDARD_ERROR_DATA,onErrorData);
-			_np.addEventListener(NativeProcessExitEvent.EXIT, onExit);
-			
-			_np.addEventListener(IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, onOutputIOError);
 			_np.start(_startUpInfo);
+		}
+		
+		public function injectCommandBytes(cmd:INativeProcessCommand):void{
+			if(_startUpInfo == null){
+				throw new Error("The native process is not initialized.");
+			}
+			if(!_np.running){
+				throw new Error("Impossible to execute command, the process is not running");
+			}
+			_injectedCmd = cmd;
+			_np.standardInput.writeBytes(cmd.getByteArray(),0,cmd.getByteArray().length);
 		}
 		
 		private function injectCommand(cmd:INativeProcessCommand):void{
@@ -120,6 +152,9 @@ package org.npcommand
 			var btemp:ByteArray = new ByteArray();
 			_np.standardOutput.readBytes(btemp,0);
 			_outBuffer.writeBytes(btemp,0);
+			if(_injectedCmd != null){
+				_injectedCmd.output.dispatch(btemp);
+			}
 			_currentCmd.output.dispatch(btemp);
 		}
 		
@@ -127,10 +162,14 @@ package org.npcommand
 			var btemp:ByteArray = new ByteArray();
 			_np.standardError.readBytes(btemp,0);
 			_errBuffer.writeBytes(btemp,0);
+			if(_injectedCmd != null){
+				_injectedCmd.error.dispatch(btemp);
+			}
 			_currentCmd.error.dispatch(btemp);
 		}
 		
 		protected function onExit(e:NativeProcessExitEvent):void{
+			_injectedCmd = null;
 			_currentCmd.exit.dispatch({outputData:_outBuffer,errorData:_errBuffer});
 		}
 		
@@ -140,7 +179,7 @@ package org.npcommand
 			}
 		}
 		
-		public function abord():void{
+		public function abort():void{
 			if(_np.running){
 				_np.exit(true);
 			}
