@@ -18,10 +18,26 @@ package org.npcommand
 	import org.osflash.signals.Signal;
 	import org.osflash.signals.natives.NativeSignal;
 	
+	/**
+	 * The Native process service allow you to use NativeProcess API like a service. 
+	 * <p>This library can dialog with two kind of process, the process who take args at execution, and process listening for command.
+	 * i.g 	Git process use arg : git init
+	 * 		Mysql is a prompt application who take paramters for initialization</p>
+	 * 
+	 * <p>NativeProcessService contains logic for initializing the startup information and dialog with the process.</p> 
+	 */ 
 	public class NativeProcessService extends EventDispatcher implements INativeProcessService
 	{
-		private static const DEFAULT_MAC_APP_PATH:String = "/usr/local/bin";
-		private static const DEFAULT_WIN_APP_PATH:String = "c:/programs/";
+		/**
+		 *Default MAC application path 
+		 */
+		private static const DEFAULT_MAC_APP_PATH:String = "/appliations";
+		
+		/**
+		 *Default MAC application path 
+		 */
+		private static const DEFAULT_WIN_APP_PATH:String = "c:/programs files/";
+		
 		
 		private var _isMacOs:Boolean = false;
 		private var _isWindows:Boolean = false;
@@ -31,14 +47,19 @@ package org.npcommand
 		private var _outBuffer:ByteArray;
 		private var _errBuffer:ByteArray;
 		
-		private var _appPath:File;
+		private var _appPath:File; //the path to the application
 		
 		private var _currentCmd:INativeProcessCommand;
 		private var _injectedCmd:INativeProcessCommand;
 		
-		private var _IOInputError:NativeSignal;
-		private var _IOOutputError:NativeSignal;
+		private var _IOInputError:NativeSignal; //Native signal for IOError
+		private var _IOOutputError:NativeSignal; //Native signal for IOError
 		
+		/**
+		 * Create a Native process service object
+		 * 
+		 * @throw NativeProcessNotSupportedError An error if native process api is not supported by the application
+		 */ 
 		public function NativeProcessService()
 		{
 			if(!NativeProcess.isSupported)
@@ -52,34 +73,41 @@ package org.npcommand
 			}
 		}
 		
+		/** @inheritDoc */ 
 		public function get IOOutputError():NativeSignal
 		{
 			return _IOOutputError;
 		}
 		
+		/** @inheritDoc */
 		public function get IOInputError():NativeSignal
 		{
 			return _IOInputError;
 		}
 		
+		/** @inheritDoc */
 		public function get isWindows():Boolean
 		{
 			return _isWindows;
 		}
 		
+		/** @inheritDoc */
 		public function get isMacOs():Boolean
 		{
 			return _isMacOs;
 		}
 		
+		/** @inheritDoc */
 		public function get isRunning():Boolean{
 			return _np.running;
 		}
 		
+		/** @inheritDoc */
 		public function get nativeProcess():NativeProcess{
 			return _np;
 		}
 		
+		/** @inheritDoc */
 		public function initialize(appName:String,path:String=null):void
 		{
 			try{
@@ -89,13 +117,13 @@ package org.npcommand
 					_appPath = new File(path);	
 				}
 			}catch(e:ArgumentError){
-				throw new Error("The application path is unreachable. Please verify it, and ensure the application is installed. \npath: "+path);
+				throw new ArgumentError("The application path is unreachable. Please verify it, and ensure the application is installed. \npath: "+path);
 			}
 			try{
 				_startUpInfo = new NativeProcessStartupInfo();
 				_startUpInfo.executable = _appPath.resolvePath(appName);
 			}catch(e:ArgumentError){
-				throw new Error("The application seems to be not present in "+path+". Please insure the application name is correct\nappName: "+appName);	
+				throw new ArgumentError("The application seems to be not present in "+path+". Please insure the application name is correct\nappName: "+appName);	
 			}
 			_np = new NativeProcess();
 			_IOInputError = new NativeSignal(_np,IOErrorEvent.STANDARD_INPUT_IO_ERROR);
@@ -105,7 +133,22 @@ package org.npcommand
 			_np.addEventListener(NativeProcessExitEvent.EXIT, onExit);
 		}
 		
-		public function executeCommand(cmd:INativeProcessCommand):void{
+		/** @inheritDoc */
+		public function start():void{
+			if(_startUpInfo == null){
+				throw new Error("The native process is not initialized.");
+			}
+			if(_np.running){
+				throw new Error("Impossible to start the process, is already running");
+			}
+			_outBuffer = new ByteArray();
+			_errBuffer = new ByteArray();
+			_currentCmd = new NativeProcessCommand();
+			_np.start(_startUpInfo);
+		}
+		
+		/** @inheritDoc */
+		public function runCommand(cmd:INativeProcessCommand):void{
 			if(_startUpInfo == null){
 				throw new Error("The native process is not initialized.");
 			}
@@ -123,7 +166,8 @@ package org.npcommand
 			_np.start(_startUpInfo);
 		}
 		
-		public function injectCommandBytes(cmd:INativeProcessCommand):void{
+		/** @inheritDoc */
+		public function injectCommand(cmd:INativeProcessCommand):void{
 			if(_startUpInfo == null){
 				throw new Error("The native process is not initialized.");
 			}
@@ -134,15 +178,6 @@ package org.npcommand
 			_np.standardInput.writeBytes(cmd.getByteArray(),0,cmd.getByteArray().length);
 		}
 		
-		private function injectCommand(cmd:INativeProcessCommand):void{
-			if(_startUpInfo == null){
-				throw new Error("The native process is not initialized.");
-			}
-			if(!_np.running){
-				throw new Error("Impossible to execute command, the process is not running");
-			}
-			_np.standardInput.writeUTF(cmd.getArgs().toString());
-		}
 		
 		protected function onOutputIOError(e:IOErrorEvent):void{
 			dispatchEvent(e);
@@ -173,12 +208,14 @@ package org.npcommand
 			_currentCmd.exit.dispatch({outputData:_outBuffer,errorData:_errBuffer});
 		}
 		
+		/** @inheritDoc */
 		public function exit():void{
 			if(_np.running){
 				_np.exit(false);
 			}
 		}
 		
+		/** @inheritDoc */
 		public function abort():void{
 			if(_np.running){
 				_np.exit(true);

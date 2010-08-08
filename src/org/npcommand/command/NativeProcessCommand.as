@@ -8,6 +8,26 @@ package org.npcommand.command
 	import org.npcommand.interfaces.INativeProcessCommand;
 	import org.osflash.signals.Signal;
 
+	
+	/**
+	 * A Native command is used to perform an action on a native process application. 
+	 * 
+	 * <p>A native command contain all information regarding the action to perform:
+	 * 	<ul>
+	 * 		<li>commandName: the command line argument to perform</li>
+	 * 		<li>args: the other arguments</li>
+	 * 		<li>workingDirectory: the directory where the application has to be execute</li>
+	 * 	</ul>
+	 * </p>
+	 * <p>
+	 * You can listening for different event regarding the command:
+	 * 	<ul>
+	 * 		<li>output: the standard output of the application</li>
+	 * 		<li>error: the standard error output of the application</li>
+	 * 		<li>exit: occured when the application exit</li>
+	 * 	</ul>
+	 * </p>
+	 */ 
 	public class NativeProcessCommand implements INativeProcessCommand 
 	{
 	
@@ -19,6 +39,7 @@ package org.npcommand.command
 		private var _error:Signal;
 		private var _exit:Signal;
 		
+		
 		public function NativeProcessCommand()
 		{
 			_args = new ArrayCollection();
@@ -27,7 +48,7 @@ package org.npcommand.command
 			_exit = new Signal(Object);
 		}
 		
-		
+		/** @inheritDoc */ 
 		public function get workingDirectory():File
 		{
 			return _workingDirectory;
@@ -37,7 +58,8 @@ package org.npcommand.command
 		{
 			_workingDirectory = value;
 		}
-
+		
+		/** @inheritDoc */ 
 		public function get args():ArrayCollection
 		{
 			return _args;
@@ -48,6 +70,7 @@ package org.npcommand.command
 			_args = value;
 		}
 
+		/** @inheritDoc */ 
 		public function get commandName():String
 		{
 			return _commandName;
@@ -58,30 +81,39 @@ package org.npcommand.command
 			_commandName = value;
 		}
 
+		/** @inheritDoc */ 
 		public function get exit():Signal
 		{
 			return _exit;
 		}
 		
+		/** @inheritDoc */ 
 		public function get error():Signal
 		{
 			return _error;
 		}
 		
+		/** @inheritDoc */ 
 		public function get output():Signal
 		{
 			return _output;
 		}
 
+		/** @inheritDoc */ 
 		public function getByteArray():ByteArray{
 			var ba:ByteArray = new ByteArray();
-			for each(var opt:int in args)
+			for each(var arg:* in args)
 			{
-				ba.writeByte(opt);
+				if(arg is String){
+					ba.writeUTF(arg);	
+				}else{
+					ba.writeByte(arg);
+				}
 			}
 			return ba;
 		}
 		
+		/** @inheritDoc */ 
 		public function getArgs():Vector.<String>{
 			var rargs:Vector.<String> = new Vector.<String>;
 			if(_commandName != null){
