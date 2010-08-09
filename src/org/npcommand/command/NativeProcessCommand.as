@@ -105,7 +105,7 @@ package org.npcommand.command
 			for each(var arg:* in args)
 			{
 				if(arg is String){
-					ba.writeUTF(arg);	
+					ba.writeUTFBytes(arg);	
 				}else{
 					ba.writeByte(arg);
 				}
