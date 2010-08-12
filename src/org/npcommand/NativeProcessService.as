@@ -134,7 +134,7 @@ package org.npcommand
 		}
 		
 		/** @inheritDoc */
-		public function start():void{
+		public function start():INativeProcessCommand{
 			if(_startUpInfo == null){
 				throw new Error("The native process is not initialized.");
 			}
@@ -145,6 +145,7 @@ package org.npcommand
 			_errBuffer = new ByteArray();
 			_currentCmd = new NativeProcessCommand();
 			_np.start(_startUpInfo);
+			return _currentCmd;
 		}
 		
 		/** @inheritDoc */

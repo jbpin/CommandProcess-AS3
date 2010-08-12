@@ -21,13 +21,14 @@ package org.npcommand.interfaces
 		
 		/**
 		 * Start the process - This function can be used to start a listening application without args.
-		 *  
+		 * 
+		 * @return INativeProcessCommand An native process command 
 		 * @throw Error if the application is already started or if the service is not initalized.
 		 *
 		 * @see initialize
 		 * @see executeCommand
 		 */
-		function start():void;
+		function start():INativeProcessCommand;
 		
 		/**
 		 * Execute a NativeProcessCommand
