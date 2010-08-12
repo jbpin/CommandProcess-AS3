@@ -42,15 +42,15 @@ package org.npcommand
 		private var _isMacOs:Boolean = false;
 		private var _isWindows:Boolean = false;
 		
-		private var _np:NativeProcess;
+		protected var _np:NativeProcess;
 		private var _startUpInfo:NativeProcessStartupInfo;
 		private var _outBuffer:ByteArray;
 		private var _errBuffer:ByteArray;
 		
 		private var _appPath:File; //the path to the application
 		
-		private var _currentCmd:INativeProcessCommand;
-		private var _injectedCmd:INativeProcessCommand;
+		protected var _currentCmd:INativeProcessCommand;
+		protected var _injectedCmd:INativeProcessCommand;
 		
 		private var _IOInputError:NativeSignal; //Native signal for IOError
 		private var _IOOutputError:NativeSignal; //Native signal for IOError
