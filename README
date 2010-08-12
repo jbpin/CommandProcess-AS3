@@ -1,0 +1,56 @@
+Process Command is a library to use Native Process API from AIR2. 
+
+The library allow you to use command with process, to use it like a service. 
+
+Pre requirements:
+
+Using AIR2
+changing application descriptor with <supportedProfiles>extendedDesktop</supportedProfiles>
+
+Example:
+
+create a Native Process service and initialize it:
+
+	public var procService:NativeProcessService;
+	public var startCommand:INativeProcessCommand;
+			
+	public function init():void{
+		procService = new NativeProcessService();
+		if(procService.isMacOs){
+			procService.initialize(macAppName,macAppPath);
+		}else if(procService.isWindows){
+			procService.initialize(winAppName,winAppPath);
+		}else{ //is linux...
+			procService.initialize(linuxAppName,linuxAppPath);
+		}
+		procService.IOInputError.add(onIOInputError); //listener with IOErrorEvent param
+		procService.IOOutputError.add(onIOOutputError); //listener with IOErrorEvent param
+	}
+
+Running an application or starting a listening application without arguments and listening for activities
+
+	startCommand = procService.start();
+
+	startCommand.output.add(onOutput); //listener with data:ByteArray
+	startCommand.error.add(onError); //listener with data:ByteArray
+	startCommand.exit.add(onExit); //listener with data:Object containing outputData (ByteArray) and errorData (ByteArray)
+
+Create a Command and execute it
+
+	var cmd:NativeProcessCommand = new NativeProcessCommand();
+	cmd.commandName = nameOfCommand; //(e.g for git: init)
+	cmd.args.addItem(otherParam); //you can add as much as you need
+
+	cmd.output.add(onCmdOutput); //listener with data:ByteArray
+	cmd.error.add(onCmdError); //listener with data:ByteArray
+	cmd.exit.add(onCmdExit); //listener with data:Object containing outputData (ByteArray) and errorData (ByteArray)
+
+	//if the process is not running
+	//you can specify the working directory
+	cmd.workingDirectory = File.applicationDirectory
+	//and running the command
+	procService.runCommand(cmd);
+
+	//if the process is running, inject the command
+	procService.injectCommand(cmd);
+	
